@@ -336,7 +336,22 @@ def postprocess_per_image(i, pred_depth, gt_depth, intrinsic, rgb_origin, normal
         osp.join(an['folder'], an['filename']),
         save_imgs_dir,
     )
-    #save_raw_imgs(pred_depth.detach().cpu().numpy(), rgb_torch, osp.join(an['folder'], an['filename']), save_imgs_dir, 1000.0)
+    #save_raw_imgs(pred_depth.detach().cpu().numpy(), rgb_torch, osp.join(an['folder'], an['filename']), save_imgs_dir, intrinsic[0])
+
+    # 1. Metric Depth를 Numpy 배열로 준비 (이미 계산된 pred_depth 활용)
+    # pred_depth는 이미 postprocess_per_image 초반에 실제 미터(m) 단위로 복원되어 있습니다.
+    depth_metric = pred_depth.detach().cpu().numpy() 
+
+    # 2. 저장 경로 설정 (이미지 파일명에서 확장자 제외하고 .npy 추가)
+    save_raw_path = osp.join(save_imgs_dir, an['folder'], an['filename'].split('.')[0] + '.npy')
+    os.makedirs(osp.dirname(save_raw_path), exist_ok=True)
+
+    # 3. 실제 Metric 값(float32)을 그대로 저장
+    #np.save(save_raw_path, depth_metric)
+
+    # (선택 사항) 만약 16-bit PNG(mm 단위)로 저장하고 싶다면 아래 코드 사용
+    depth_mm = (depth_metric * 1000).astype(np.uint16)
+    cv2.imwrite(save_raw_path.replace('.npy', '_mm.png'), depth_mm)    
 
     # pcd
     pred_depth = pred_depth.detach().cpu().numpy()
